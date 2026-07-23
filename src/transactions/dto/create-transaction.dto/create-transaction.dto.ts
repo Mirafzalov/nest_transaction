@@ -1,9 +1,4 @@
-// import { TransactionTypeEnum } from "src/transactions/enums/transaction-type.enum.ts/transaction-type.enum";
 
-
-// const dateCheck = (transactionDate) => {
-//     return new Date(transactionDate)
-// }
 
 export class CreateTransactionDto {
 
@@ -16,4 +11,13 @@ export class CreateTransactionDto {
     description: String;
     
     transactionDate: string;
+}
+
+
+
+export class QueryTransactionDto{
+    type?: 'expense' | 'income';
+    from?: number;
+    to?: number;
+
 }

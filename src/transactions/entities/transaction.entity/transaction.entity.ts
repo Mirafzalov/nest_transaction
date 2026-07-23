@@ -26,7 +26,7 @@ export class TransactionEntity {
     description: String;
 
     @Column({type: 'date'})
-    transactionDate: string;
+    transactionDate: Date;
 
     @CreateDateColumn()
     createdAt: Date;
