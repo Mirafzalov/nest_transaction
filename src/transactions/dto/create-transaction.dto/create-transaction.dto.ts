@@ -17,7 +17,7 @@ export class CreateTransactionDto {
 
 export class QueryTransactionDto{
     type?: 'expense' | 'income';
-    from?: number;
-    to?: number;
+    from?: string;
+    to?: string;
 
 }

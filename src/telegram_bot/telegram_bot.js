@@ -1,9 +1,16 @@
 // import { Bot, InlineKeyboard } from "grammy";
+const { Post, BadRequestException } = require("@nestjs/common");
+const { repl } = require("@nestjs/core");
+const { response } = require("express");
 const { Bot, InlineKeyboard } = require("grammy");
 const { get } = require("http");
+const { nextTick } = require("process");
+const { set } = require("supertest/lib/cookies");
 
 
 const bot = new Bot("8496144394:AAFeO_2VMe3GM1g96nt3L_aTyPVpr541F8s");
+
+const userState = new Map();
 
 // const getTransaction = async () => {
 // const response = await fetch('http://localhost:3000/transactions/')
@@ -36,14 +43,43 @@ const bot = new Bot("8496144394:AAFeO_2VMe3GM1g96nt3L_aTyPVpr541F8s");
 
 
 
+const postTransaction = async (data) => {
+    const response = await fetch('http://localhost:3000/transactions/', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    })
+    console.log(JSON.stringify(data));
+    const result = await response.json()
+
+
+    let text = '\n' +
+        `
+💸 <b>Type of transaction:</b> ${result.type}
+
+━━━━━━━━━━━━━━━━━━
+💰 <b>Amount:</b> ${result.amount.toLocaleString()} UZS
+🏷️ <b>Category:</b> ${result.category}
+📝 <b>Description:</b> ${result.description}
+📅 <b>Date:</b> ${result.transactionDate.slice(0, 10)}
+━━━━━━━━━━━━━━━━━━
+
+🆔 Transaction #${result.id}\n\n\n`
+
+    return text
+}
 
 
 
 const getTransactionPaginated = async () => {
     const response = await fetch('http://localhost:3000/transactions/')
-    const datas = await response.json()
+    const transactions = await response.json()
 
-
+    const datas = transactions.sort((a, b) => {
+        return new Date(a.transactionDate) - new Date(b.transactionDate)
+    })
 
     const result = []
     let res = []
@@ -110,15 +146,61 @@ const getKeyboard = (len, page) => {
 
 
 bot.command("start", async (ctx) => {
-    ctx.reply('Hello')
+    ctx.reply('Hello', {
+        reply_markup: {
+            keyboard: [
+                ["➕ Add transaction"],
+                ["📋 View all transactions"],
+                ["📊 Account transactions"]
+            ],
+            resize_keyboard: true
+        }
+    })
 })
 
 
 
-bot.command("menu", async (ctx) => {
+bot.hears('➕ Add transaction', async (ctx, next) => {
+
+    userState.set(ctx.from.id, 'ADDING_TRANSACTION')
+
+    ctx.reply(`
+📝 <b>Create a Transaction</b>
+
+Please send your transaction details in the following format:
+
+💰 <b>100000</b> → Amount of the transaction
+📌 <b>expense</b> → Type: <code>expense</code> or <code>income</code>
+🏷️ <b>Lunch</b> → Category of your transaction
+📝 <b>Had lunch at a cafe</b> → Short description
+📅 <b>2026-06-06</b> → Transaction date
+
+<b>Example:</b>
+<code>
+100000
+expense
+Lunch 
+Had lunch at a cafe 
+2026-06-06
+</code>
+
+✨ Please make sure all details are provided in the correct order.
+`, {
+        parse_mode: 'HTML'
+    })
+
+})
+
+
+
+bot.hears("📋 View all transactions", async (ctx) => {
+
+    userState.set(ctx.from.id, 'VIEW_TRANSACTION');
+
+
     const data = await getTransactionPaginated()
     let len = data.length
-    let page = len-1
+    let page = len - 1
     const keyboard = getKeyboard(len, page)
 
 
@@ -126,7 +208,71 @@ bot.command("menu", async (ctx) => {
         reply_markup: keyboard,
         parse_mode: 'HTML'
     });
+
 });
+
+
+
+        
+bot.hears("📊 Account transactions", async(ctx) => {
+
+    userState.set(ctx.from.id, 'ACCOUNT_TRANSACTION')
+
+    const response  = await fetch('http://localhost:3000/accounting/')
+    const data = await response.json()
+
+    ctx.reply(data.message)
+})
+
+
+
+
+bot.on('message:text', async (ctx, next) => {
+
+    const state = userState.get(ctx.from.id)
+    console.log(state)
+
+    if (state == 'ADDING_TRANSACTION' && ctx.message.text.split('\n').length == 5) {
+
+        const amount = Number(ctx.message.text.split('\n')[0])
+        const [_, type, category, description, transactionDate] = ctx.message.text.split('\n')
+
+        try {
+            const data = {
+                amount: amount,
+                type: type,
+                category: category,
+                description: description,
+                transactionDate: transactionDate
+            }
+
+            const result = await postTransaction(data)
+
+            console.log('POST acomplished')
+
+            ctx.reply(result, {
+                parse_mode: "HTML",
+            })
+
+        } catch {
+            ctx.reply("Inserted values could not meet the reuiqrements of the trnasction")
+        }
+
+    } else if (state == 'ACCOOUNT_TRANSACTIONS'){
+
+        const [type, from, to] = ctx.message.text
+
+        const response = await fetch(`http://localhost:3000/transactions?type=${type}&&from=${from}&&to=${to}`)
+        const data = await response.json()
+
+        ctx.reply
+
+    } else {
+        ctx.reply('Invalid input')
+    }
+
+})
+
 
 
 
@@ -150,7 +296,7 @@ bot.on('callback_query:data', async (ctx) => {
             });
 
         } else if (page == len - 1) {
-            const keyboard = getKeyboard()
+            const keyboard = getKeyboard(len, page)
 
         }
 
@@ -175,6 +321,10 @@ bot.on('callback_query:data', async (ctx) => {
 })
 
 
+
+
+
+// bot.api.sendMessage(6184005806)
 
 
 bot.start();

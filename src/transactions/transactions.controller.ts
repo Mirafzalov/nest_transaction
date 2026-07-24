@@ -15,7 +15,7 @@ export class TransactionsController {
 
     @Post()
     create(@Body() data: CreateTransactionDto) {
-
+        
         const date = new Date(data.transactionDate)
         if (!date.getDate()) {
             throw new BadRequestException("Invalid date, it should be inserted like '2026-06-06'")
@@ -60,8 +60,7 @@ export class TransactionsController {
 
 
     @Get()
-    filterBy(@Query() data: any) {
-        console.log(data.type)
+    filterBy(@Query() data: QueryTransactionDto) {
         return this.transactionService.filterBy(data)
     }
 
