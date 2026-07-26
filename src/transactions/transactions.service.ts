@@ -58,9 +58,9 @@ export class TransactionsService {
     async filterBy(data): Promise<TransactionEntity[]> {
         const transaction = await this.transactionRepository.find()
 
-        const result = transaction.filter(transac => (!data.type || transac.type === data.type) && (!data.from || transac.transactionDate >= data.from && new Date(data.from)) && (!data.to || transac.transactionDate <= data.to))
+        const result = transaction.filter(transac => (!data.type || transac.type === data.type) && (!data.from || transac.transactionDate >= data.from && new Date(data.from)) && (!data.to || transac.transactionDate <= data.to && new Date(data.to)))
 
-        if (result.length < 1) {
+        if (result.length < 1){
             throw new NotFoundException('No transactions found')
         }
         return result

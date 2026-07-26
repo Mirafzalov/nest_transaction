@@ -69,13 +69,13 @@ export class TransactionsController {
 }
 
 
-@Controller('accounting')
-export class AccountingController{
-    constructor(private accountingService: AccountingService){}
+// @Controller('accounting')
+// export class AccountingController{
+//     constructor(private accountingService: AccountingService){}
 
-    @Get()
-    calculate(){
-        return this.accountingService.calculate()
-    }
+//     @Get()
+//     calculate(){
+//         return this.accountingService.calculate()
+//     }
 
-}
+// }

@@ -5,6 +5,7 @@ const { response } = require("express");
 const { Bot, InlineKeyboard } = require("grammy");
 const { get } = require("http");
 const { nextTick } = require("process");
+const { operate } = require("rxjs/internal/util/lift");
 const { set } = require("supertest/lib/cookies");
 
 
@@ -41,6 +42,21 @@ const userState = new Map();
 //     return res
 // }
 
+
+const calculateByDate = async (data) => {
+
+    const transaction = data
+    const expenses = transaction.reduce((expense, transac) => transac.type == 'expense' ? transac.amount + expense : expense + 0, 0)
+    const incomes = transaction.reduce((income, transac) => transac.type == 'income' ? transac.amount + income : income + 0, 0)
+    // const total = incomes - expenses
+
+                let balance = `
+━━━━━━━━━━━━━━━━
+💰 <b>Total expenses:</b> ${expenses} UZS
+💵 <b>Total income:</b> ${incomes} UZS
+📈 <b>Balance:</b> ${incomes-expenses} UZS`
+    return balance
+}
 
 
 const postTransaction = async (data) => {
@@ -85,13 +101,15 @@ const getTransactionPaginated = async () => {
     let res = []
 
     datas.map(data => {
+        let operator = data.type == 'expense' ? '-' : '+';
+        let emoji = operator === '-' ? '🔴' : '🟢';
 
         let text = '\n' +
             `
 💸 <b>Type of transaction:</b> ${data.type}
 
 ━━━━━━━━━━━━━━━━━━
-💰 <b>Amount:</b> ${data.amount.toLocaleString()} UZS
+${emoji} <b>Amount:</b> ${operator}${data.amount.toLocaleString()} UZS
 🏷️ <b>Category:</b> ${data.category}
 📝 <b>Description:</b> ${data.description}
 📅 <b>Date:</b> ${data.transactionDate.slice(0, 10)}
@@ -213,15 +231,36 @@ bot.hears("📋 View all transactions", async (ctx) => {
 
 
 
-        
-bot.hears("📊 Account transactions", async(ctx) => {
 
-    userState.set(ctx.from.id, 'ACCOUNT_TRANSACTION')
+bot.hears("📊 Account transactions", async (ctx) => {
 
-    const response  = await fetch('http://localhost:3000/accounting/')
-    const data = await response.json()
+    userState.set(ctx.from.id, 'ACCOOUNT_TRANSACTIONS')
 
-    ctx.reply(data.message)
+    let text = `
+
+🔎 <b>Find Your Transactions</b>
+
+Want to see where your money went? 💸
+Enter the date range you'd like to check.
+
+📅 <b>Use this format:</b> <code>YYYY-MM-DD</code> <code>YYYY-MM-DD</code>
+
+✨ <b>Example:</b> 
+<code>
+2026-05-06
+2026-06-06
+</code>
+
+⬆️ Start date
+⬇️ End date
+
+I'll show you all your transactions within this period. 📊
+`
+
+    ctx.reply(text, {
+        parse_mode: 'HTML'
+    })
+
 })
 
 
@@ -258,14 +297,79 @@ bot.on('message:text', async (ctx, next) => {
             ctx.reply("Inserted values could not meet the reuiqrements of the trnasction")
         }
 
-    } else if (state == 'ACCOOUNT_TRANSACTIONS'){
 
-        const [type, from, to] = ctx.message.text
 
-        const response = await fetch(`http://localhost:3000/transactions?type=${type}&&from=${from}&&to=${to}`)
-        const data = await response.json()
+    } else if (state == 'ACCOOUNT_TRANSACTIONS' && ctx.message.text.split('\n').length == 2) {
 
-        ctx.reply
+
+        const [from, to] = ctx.message.text.split('\n')
+
+        if (!new Date(from).getDate() || !new Date(to).getDate() || from > to) {
+            ctx.reply('Date input is invalid, try agian')
+            return;
+        }
+
+        try {
+
+            const response = await fetch(`http://localhost:3000/transactions?from=${from}&&to=${to}`)
+            const data = await response.json()
+
+            if (data.statusCode == 404) {
+                ctx.reply('No transaction is found in this intrerval of time, try using other Dates')
+                return
+            }
+
+            const result = []
+
+            data.forEach(data => {
+
+                let operator = data.type == 'expense' ? '-' : '+';
+
+                let emoji = operator === '-' ? '🔴' : '🟢';
+
+                let text = `
+
+💸 <b>Type of transaction:</b> ${data.type}
+
+━━━━━━━━━━━━━━━━
+${emoji} <b>Amount:</b> ${operator}${data.amount.toLocaleString()} UZS
+🏷️ <b>Category:</b> ${data.category}
+📝 <b>Description:</b> ${data.description}
+📅 <b>Date:</b> ${data.transactionDate.slice(0, 10)}
+━━━━━━━━━━━━━━━━
+
+🆔 Transaction #${data.id}\n\n\n
+`;
+
+                result.push(text)
+            })
+
+
+            let text = `            
+📊 <b>My Transactions</b>
+
+━━━━━━━━━━━━━━━━
+`
+            result.unshift(text)
+            result.push('━━━━━━━━━━━━━━━━')
+
+
+
+            ctx.reply(result.join('\n'), {
+                parse_mode: 'HTML'
+            });
+            
+            const balance = await calculateByDate(data)
+
+
+            ctx.reply(balance, {
+                parse_mode: "HTML"
+            })
+
+
+        } catch (err) {
+            ctx.reply(" Error" + err)
+        }
 
     } else {
         ctx.reply('Invalid input')
@@ -322,10 +426,11 @@ bot.on('callback_query:data', async (ctx) => {
 
 
 
-
-
-// bot.api.sendMessage(6184005806)
-
+// i = 0
+// while (i < 30) {
+// bot.api.sendPhoto(6184005806)
+// i+=1
+// }
 
 bot.start();
 
