@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TransactionsModule } from './transactions/transactions.module';
+// import { TelegramService } from './telegram_bot/telegram_bot2';
 
 @Module({
   imports: [
@@ -11,7 +13,9 @@ import { AppService } from './app.service';
       database: 'db.sqlite',
       entities: [],
       synchronize: true,
+      autoLoadEntities: true,
     }),
+    TransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
