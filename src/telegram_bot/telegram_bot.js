@@ -3,44 +3,13 @@ const { Post, BadRequestException } = require("@nestjs/common");
 const { repl } = require("@nestjs/core");
 const { response } = require("express");
 const { Bot, InlineKeyboard } = require("grammy");
-const { get } = require("http");
 const { nextTick } = require("process");
-const { operate } = require("rxjs/internal/util/lift");
-const { set } = require("supertest/lib/cookies");
 
 
 const bot = new Bot("8496144394:AAFeO_2VMe3GM1g96nt3L_aTyPVpr541F8s");
 
 const userState = new Map();
 
-// const getTransaction = async () => {
-// const response = await fetch('http://localhost:3000/transactions/')
-// const data = await response.json()
-
-//     data.forEach(transact => {
-//         transact.type === 'expense' ? transact.type = 'Расход' : transact.type = 'Доход'
-
-//     })
-//     console.log(data)
-//     return data
-
-// }
-
-// const getTransaction = async () => {
-//     const response = await fetch('http://localhost:3000/transactions/')
-//     const datas = await response.json()
-//     const res = datas.map(data =>
-//         '\n' +
-//         `
-//     <b>Amount:</b> ${data.amount} sum\n 
-//     <b>Type of the transaction:</b> ${data.type}\n
-//     <b>Category:</b> ${data.category}\n 
-//     <b>Description:</b> ${data.description}\n 
-//     <b>Date of the transaction:</b> ${data.transactionDate.slice(0, 10)}\n 
-//     ############################`).join('\n\n')
-//     console.log(typeof (res))
-//     return res
-// }
 
 
 const calculateByDate = async (data) => {
@@ -52,9 +21,9 @@ const calculateByDate = async (data) => {
 
                 let balance = `
 ━━━━━━━━━━━━━━━━
-💰 <b>Total expenses:</b> ${expenses} UZS
-💵 <b>Total income:</b> ${incomes} UZS
-📈 <b>Balance:</b> ${incomes-expenses} UZS`
+💰 <b>Total expenses:</b> ${expenses.toLocaleString()} UZS
+💵 <b>Total income:</b> ${incomes.toLocaleString()} UZS
+📈 <b>Balance:</b> ${(incomes-expenses).toLocaleString()} UZS`
     return balance
 }
 
@@ -354,8 +323,7 @@ ${emoji} <b>Amount:</b> ${operator}${data.amount.toLocaleString()} UZS
             result.push('━━━━━━━━━━━━━━━━')
 
 
-
-            ctx.reply(result.join('\n'), {
+            await ctx.reply(result.join('\n'), {
                 parse_mode: 'HTML'
             });
             

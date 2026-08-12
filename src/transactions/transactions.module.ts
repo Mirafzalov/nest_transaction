@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import {TransactionsController } from './transactions.controller';
-import { AccountingService, TransactionsService } from './transactions.service';
+import { TransactionsService } from './transactions.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransactionEntity } from './entities/transaction.entity/transaction.entity';
 
@@ -8,7 +8,7 @@ import { TransactionEntity } from './entities/transaction.entity/transaction.ent
     imports: [TypeOrmModule.forFeature([TransactionEntity]),
     ],
     controllers: [TransactionsController],
-    providers: [TransactionsService, AccountingService]
+    providers: [TransactionsService]
 })
 
 

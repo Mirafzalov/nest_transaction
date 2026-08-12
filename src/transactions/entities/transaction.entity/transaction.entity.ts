@@ -1,5 +1,3 @@
-// import { TransactionTypeEnum } from "src/transactions/enums/transaction-type.enum.ts/transaction-type.enum";
-import { text } from "stream/consumers";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 
@@ -26,7 +24,7 @@ export class TransactionEntity {
     description: String;
 
     @Column()
-    transactionDate: string;
+    transactionDate: string;    
 
     @CreateDateColumn()
     createdAt: Date;
